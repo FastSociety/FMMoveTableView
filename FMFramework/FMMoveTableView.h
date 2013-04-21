@@ -23,6 +23,9 @@
 // Called before the particular row is about to change to a moving state
 - (void)moveTableView:(FMMoveTableView *)tableView willMoveRowAtIndexPath:(NSIndexPath *)indexPath;
 
+-(void)moveTableView:(FMMoveTableView *)tableView didStartMovingWithGesutre:(UIGestureRecognizer *)gesture;
+-(void)moveTableViewdidStopMoving:(FMMoveTableView *)tableView;
+
 @end
 
 

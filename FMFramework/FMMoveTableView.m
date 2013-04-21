@@ -119,6 +119,7 @@
 - (void)setup
 {
 	UILongPressGestureRecognizer *movingGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    [movingGestureRecognizer setMinimumPressDuration:0.2];
 	[movingGestureRecognizer setDelegate:self];
 	[self addGestureRecognizer:movingGestureRecognizer];
 	[self setMovingGestureRecognizer:movingGestureRecognizer];
@@ -303,8 +304,8 @@
 			
 			
 			// Create a snap shot of the touched cell and store it
-			CGRect cellFrame = [touchedCell bounds];
-			
+			CGRect cellFrame = [touchedCell.layer bounds];
+            
 			if ([[UIScreen mainScreen] scale] == 2.0) {
 				UIGraphicsBeginImageContextWithOptions(cellFrame.size, NO, 2.0);
 			} else {
@@ -323,7 +324,13 @@
 			
 			[self setSnapShotImageView:snapShotOfMovingCell];
 			[self addSubview:[self snapShotImageView]];
-			
+
+            
+            //Change size of the moving cell
+            [UIView animateWithDuration:0.25 animations:^{
+                snapShotOfMovingCell.transform = CGAffineTransformMakeScale(0.9, 0.9);
+            }];
+
 			
 			// Prepare the cell for moving (e.g. clear it's labels and imageView)
 			[touchedCell prepareForMove];
@@ -337,6 +344,8 @@
 			[self setAutoscrollThreshold:([[self snapShotImageView] frame].size.height * 0.6)];
 			[self setAutoscrollDistance:0.0];
 			
+            [self.delegate moveTableView:self didStartMovingWithGesutre:gestureRecognizer];
+            
 			break;
 		}
 			
@@ -394,7 +403,8 @@
 									 [self reloadRowsAtIndexPaths:[NSArray arrayWithObject:movingIndexPath] withRowAnimation:UITableViewRowAnimationNone];
 								 }
 								 
-							 }];			
+							 }];
+            [self.delegate moveTableViewdidStopMoving:self];
 			
 			break;
 		}
@@ -514,11 +524,12 @@
 	{
 		// Create the shadow if a new snap shot is created
 		[[snapShotImageView layer] setShadowOpacity:0.7];
-		[[snapShotImageView layer] setShadowRadius:3];
-		[[snapShotImageView layer] setShadowOffset:CGSizeZero];
+		[[snapShotImageView layer] setShadowRadius:1];
+        [[snapShotImageView layer] setShadowOffset:CGSizeMake(0.0, 0.0)];
+		//[[snapShotImageView layer] setShadowOffset:CGSizeZero];
 		
-		CGPathRef shadowPath = [[UIBezierPath bezierPathWithRect:[[snapShotImageView layer] bounds]] CGPath];
-		[[snapShotImageView layer] setShadowPath:shadowPath];
+		//CGPathRef shadowPath = [[UIBezierPath bezierPathWithRect:[[snapShotImageView layer] bounds]] CGPath];
+		//[[snapShotImageView layer] setShadowPath:shadowPath];
 	}
 	
 	_snapShotImageView = snapShotImageView;
