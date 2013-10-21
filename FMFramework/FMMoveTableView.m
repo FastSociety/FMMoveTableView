@@ -119,7 +119,6 @@
 - (void)setup
 {
 	UILongPressGestureRecognizer *movingGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
-    [movingGestureRecognizer setMinimumPressDuration:0.2];
 	[movingGestureRecognizer setDelegate:self];
 	[self addGestureRecognizer:movingGestureRecognizer];
 	[self setMovingGestureRecognizer:movingGestureRecognizer];
@@ -271,7 +270,6 @@
 	return shouldBegin;
 }
 
-
 - (void)handleLongPress:(UILongPressGestureRecognizer *)gestureRecognizer
 {
 	switch ([gestureRecognizer state]) 
@@ -304,8 +302,8 @@
 			
 			
 			// Create a snap shot of the touched cell and store it
-			CGRect cellFrame = [touchedCell.layer bounds];
-            
+			CGRect cellFrame = [touchedCell bounds];
+			
 			if ([[UIScreen mainScreen] scale] == 2.0) {
 				UIGraphicsBeginImageContextWithOptions(cellFrame.size, NO, 2.0);
 			} else {
@@ -324,13 +322,12 @@
 			
 			[self setSnapShotImageView:snapShotOfMovingCell];
 			[self addSubview:[self snapShotImageView]];
-
             
             //Change size of the moving cell
             [UIView animateWithDuration:0.25 animations:^{
                 snapShotOfMovingCell.transform = CGAffineTransformMakeScale(0.9, 0.9);
             }];
-
+			
 			
 			// Prepare the cell for moving (e.g. clear it's labels and imageView)
 			[touchedCell prepareForMove];
@@ -344,8 +341,6 @@
 			[self setAutoscrollThreshold:([[self snapShotImageView] frame].size.height * 0.6)];
 			[self setAutoscrollDistance:0.0];
 			
-            [self.delegate moveTableView:self didStartMovingWithGesutre:gestureRecognizer];
-            
 			break;
 		}
 			
@@ -390,21 +385,31 @@
 									 // Clean up snap shot
 									 [[self snapShotImageView] removeFromSuperview];
 									 [self setSnapShotImageView:nil];
+                                     
+                                     NSIndexPath *movingIndexPath = [[self movingIndexPath] copy];
+                                     NSIndexPath *initialIndexPathForMovingRow = [[self initialIndexPathForMovingRow] copy];
+                                     
+									 [self setMovingIndexPath:nil];
+									 [self setInitialIndexPathForMovingRow:nil];
 									 
 									 // Inform the data source about the new position if necessary
-									 if ([[self initialIndexPathForMovingRow] compare:[self movingIndexPath]] != NSOrderedSame) {
-										 [[self dataSource] moveTableView:self moveRowFromIndexPath:[self initialIndexPathForMovingRow] toIndexPath:[self movingIndexPath]];
+									 if ([initialIndexPathForMovingRow compare:movingIndexPath] != NSOrderedSame) {
+										 [[self dataSource] moveTableView:self
+                                                     moveRowFromIndexPath:initialIndexPathForMovingRow
+                                                              toIndexPath:movingIndexPath];
 									 }
 									 
 									 // Reload row at moving index path to reset it's content
-									 NSIndexPath *movingIndexPath = [[self movingIndexPath] copy];
-									 [self setMovingIndexPath:nil];
-									 [self setInitialIndexPathForMovingRow:nil];
+									 [self beginUpdates];
 									 [self reloadRowsAtIndexPaths:[NSArray arrayWithObject:movingIndexPath] withRowAnimation:UITableViewRowAnimationNone];
+                                     [self endUpdates];
+                                     
+                                     if([self.delegate respondsToSelector:@selector(moveTableViewStopMoving)]){
+                                         [self.delegate moveTableViewStopMoving];
+                                     }
 								 }
 								 
-							 }];
-            [self.delegate moveTableViewdidStopMoving:self];
+							 }];			
 			
 			break;
 		}
@@ -422,7 +427,9 @@
 				NSIndexPath *movingIndexPath = [self movingIndexPath];
 				[self setMovingIndexPath:nil];
 				[self setInitialIndexPathForMovingRow:nil];
+                [self beginUpdates];
 				[self reloadRowsAtIndexPaths:[NSArray arrayWithObject:movingIndexPath] withRowAnimation:UITableViewRowAnimationNone];
+                [self endUpdates];
 			}
 			
 			break;
@@ -524,12 +531,11 @@
 	{
 		// Create the shadow if a new snap shot is created
 		[[snapShotImageView layer] setShadowOpacity:0.7];
-		[[snapShotImageView layer] setShadowRadius:1];
-        [[snapShotImageView layer] setShadowOffset:CGSizeMake(0.0, 0.0)];
-		//[[snapShotImageView layer] setShadowOffset:CGSizeZero];
+		[[snapShotImageView layer] setShadowRadius:3];
+		[[snapShotImageView layer] setShadowOffset:CGSizeZero];
 		
-		//CGPathRef shadowPath = [[UIBezierPath bezierPathWithRect:[[snapShotImageView layer] bounds]] CGPath];
-		//[[snapShotImageView layer] setShadowPath:shadowPath];
+		CGPathRef shadowPath = [[UIBezierPath bezierPathWithRect:[[snapShotImageView layer] bounds]] CGPath];
+		[[snapShotImageView layer] setShadowPath:shadowPath];
 	}
 	
 	_snapShotImageView = snapShotImageView;
